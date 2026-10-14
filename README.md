@@ -1,2 +1,90 @@
-# Vocab-Notebook
-Type an English word, and the system automatically fills in the POS, synonyms, Thai meaning, and example sentences.
+# 📒 Vocab Notebook
+
+เว็บจดคลังคำศัพท์ภาษาอังกฤษด้วย Flask (ไฟล์เดียว: `app.py`) พิมพ์แค่คำศัพท์ ระบบเติมให้อัตโนมัติ:
+
+- Parts of Speech (POS)
+- Synonyms
+- ความหมายภาษาไทย
+- ประโยคตัวอย่างที่ใช้ในชีวิตประจำวัน พร้อมคำแปลไทย
+
+หน้าเว็บใช้ Tailwind CSS ผ่าน CDN ข้อมูลเก็บใน SQLite (`vocab.db`) สร้างอัตโนมัติข้างไฟล์ `app.py`
+
+## ติดตั้ง
+
+ต้องมี Python 3.9+
+
+```bash
+pip install flask
+```
+
+## รัน
+
+```bash
+python app.py
+```
+
+เปิดเบราว์เซอร์ที่ http://127.0.0.1:5000
+
+(บนเครื่องที่ Python ไม่อยู่ใน PATH ให้ใช้ path เต็ม เช่น `C:\Python315\python.exe app.py`)
+
+## วิธีใช้
+
+1. พิมพ์คำศัพท์ในช่องด้านบน (ตัวอักษรอังกฤษ, ช่องว่าง, `'` และ `-` ได้ ไม่เกิน 60 ตัวอักษร) แล้วกด **เพิ่มคำ** หรือ Enter
+2. รอสักครู่ การ์ดคำศัพท์จะขึ้นด้านล่าง
+3. 🔊 ฟังเสียงอ่าน (ใช้ speech synthesis ของเบราว์เซอร์)
+4. 🔍 ค้นหาจากคำ ความหมายไทย หรือ synonym
+5. ✕ ลบคำออกจากคลัง
+6. คำซ้ำจะถูกปฏิเสธ
+
+## เลือกโหมดดึงข้อมูล
+
+| โหมด | วิธีเปิด | คุณภาพ |
+|---|---|---|
+| **Claude** (แนะนำ) | ตั้ง `ANTHROPIC_API_KEY` | ได้ครบทุกช่อง ประโยคเป็นธรรมชาติ คำแปลไทยตรงบริบท |
+| **ฟรี** (fallback) | ไม่ต้องตั้งอะไร | คำแปลไทยจาก MyMemory; POS/Synonym/ตัวอย่างจาก dictionaryapi.dev ซึ่งบางครั้งล่มหรือช้า ถ้าดึงไม่ได้จะเหลือแค่คำแปลกับประโยคแม่แบบ |
+
+ถ้าโหมด Claude เรียกไม่สำเร็จ (เน็ตหลุด, คีย์ผิด) ระบบสลับไปโหมดฟรีเอง
+
+### ตั้ง API key
+
+cmd:
+```bash
+set ANTHROPIC_API_KEY=sk-ant-xxxxx
+python app.py
+```
+
+PowerShell:
+```powershell
+$env:ANTHROPIC_API_KEY = "sk-ant-xxxxx"
+python app.py
+```
+
+macOS / Linux:
+```bash
+export ANTHROPIC_API_KEY=sk-ant-xxxxx
+python app.py
+```
+
+เปลี่ยนโมเดลได้ด้วยตัวแปร `VOCAB_MODEL` (ค่าเริ่มต้น `claude-haiku-5-5`)
+
+> ห้ามเขียนคีย์ลงในไฟล์ `app.py` หรือ commit ขึ้น git
+
+## API
+
+| Method | Path | ทำอะไร |
+|---|---|---|
+| GET | `/api/words` | รายการคำทั้งหมด (ใหม่สุดก่อน) |
+| POST | `/api/words` | เพิ่มคำ body: `{"word": "reluctant"}` |
+| DELETE | `/api/words/<id>` | ลบคำ |
+
+รหัสผิดพลาด: `400` คำไม่ถูกรูปแบบ, `404` ไม่พบคำ, `409` คำซ้ำ, `502` ดึงข้อมูลไม่สำเร็จ
+
+## ข้อมูลและการสำรอง
+
+- ข้อมูลอยู่ที่ `vocab.db` ข้างไฟล์ `app.py` สำรองโดยคัดลอกไฟล์นี้
+- ลบคลังทั้งหมด: หยุดแอป แล้วลบไฟล์ `vocab.db`
+
+## หมายเหตุ
+
+- `app.run(debug=True)` ใช้สำหรับพัฒนาในเครื่องเท่านั้น อย่าเปิดใช้งานบนเครื่องที่คนอื่นเข้าถึงได้
+- โหมด Claude ส่งคำที่พิมพ์ไปยัง Anthropic API; โหมดฟรีส่งไปยัง dictionaryapi.dev และ MyMemory
